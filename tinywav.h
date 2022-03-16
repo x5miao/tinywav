@@ -27,58 +27,18 @@
 extern "C" {
 #endif
 
-// http://soundfile.sapp.org/doc/WaveFormat/
-typedef struct TinyWavHeader {
-  uint32_t ChunkID;
-  uint32_t ChunkSize;
-  uint32_t Format;
-  uint32_t Subchunk1ID;
-  uint32_t Subchunk1Size;
-  uint16_t AudioFormat;
-  uint16_t NumChannels;
-  uint32_t SampleRate;
-  uint32_t ByteRate;
-  uint16_t BlockAlign;
-  uint16_t BitsPerSample;
-  uint32_t Subchunk2ID;
-  uint32_t Subchunk2Size;
-} TinyWavHeader;
-
-typedef enum TinyWavChannelFormat {
-  TW_INTERLEAVED, // channel buffer is interleaved e.g. [LRLRLRLR]
-  TW_INLINE,      // channel buffer is inlined e.g. [LLLLRRRR]
-  TW_SPLIT        // channel buffer is split e.g. [[LLLL],[RRRR]]
-} TinyWavChannelFormat;
-
-typedef enum TinyWavSampleFormat {
-  TW_INT16 = 2,  // two byte signed integer
-  TW_FLOAT32 = 4 // four byte IEEE float
-} TinyWavSampleFormat;
+typedef struct TinyWavHeader TinyWavHeader;
 
 typedef struct TinyWav {
   FILE *f;
-  TinyWavHeader h;
-  int16_t numChannels;
-  uint32_t totalFramesWritten;
-  TinyWavChannelFormat chanFmt;
-  TinyWavSampleFormat sampFmt;
+  TinyWavHeader *h;
+  int numChannels;
+  int samplerate;
+  int bytesPerSample;
+  size_t totalDataBytes;
+  size_t rpos;
 } TinyWav;
 
-/**
- * Open a file for writing.
- *
- * @param numChannels  The number of channels to write.
- * @param samplerate   The sample rate of the audio.
- * @param sampFmt      The sample format (e.g. 16-bit integer or 32-bit float).
- * @param chanFmt      The channel format (how the channel data is layed out in memory)
- * @param path         The path of the file to write to. The file will be overwritten.
- *
- * @return  The error code. Zero if no error.
- */
-int tinywav_open_write(TinyWav *tw,
-    int16_t numChannels, int32_t samplerate,
-    TinyWavSampleFormat sampFmt, TinyWavChannelFormat chanFmt,
-    const char *path);
 
 /**
  * Open a file for reading.
@@ -90,21 +50,35 @@ int tinywav_open_write(TinyWav *tw,
  *
  * @return  The error code. Zero if no error.
  */
-int tinywav_open_read(TinyWav *tw, const char *path,
-    TinyWavChannelFormat chanFmt, TinyWavSampleFormat sampFmt);
+int tinywav_open_read(TinyWav *tw, const char *path);
 
 /**
  * Read sample data from the file.
  *
- * @param data  A pointer to the data structure to read to. This data is expected to have the
- *              correct memory layout to match the specifications given in tinywav_open_read().
- * @param len   The number of frames to read.
+ * @param data  A pointer to the data structure to read to. This data has the same layout
+                with the file, user need to convert it to the self-defined format.
+ * @param len   The bytes of data.
+ * return value    the read samples from the wav file
  */
 int tinywav_read_f(TinyWav *tw, void *data, int len);
+
 
 /** Stop reading the file. The Tinywav struct is now invalid. */
 void tinywav_close_read(TinyWav *tw);
 
+/**
+* Open a file for writing.
+*
+* @param numChannels  The number of channels to write.
+* @param samplerate   The sample rate of the audio.
+* @param sampFmt      The sample format (e.g. 16-bit integer or 32-bit float).
+* @param chanFmt      The channel format (how the channel data is layed out in memory)
+* @param path         The path of the file to write to. The file will be overwritten.
+*
+* @return  The error code. Zero if no error.
+*/
+int tinywav_open_write(TinyWav *tw, const char *path,
+    int numChannels, int samplerate, int bytesPerSample);
 /**
  * Write sample data to file.
  *
@@ -114,13 +88,13 @@ void tinywav_close_read(TinyWav *tw);
  *
  * @return The total number of samples written to file.
  */
-size_t tinywav_write_f(TinyWav *tw, void *f, int len);
+size_t tinywav_write_f(TinyWav *tw, const void *data, int len);
 
 /** Stop writing to the file. The Tinywav struct is now invalid. */
 void tinywav_close_write(TinyWav *tw);
 
 /** Returns true if the Tinywav struct is available to write or write. False otherwise. */
-bool tinywav_isOpen(TinyWav *tw);
+bool tinywav_isOpen(const TinyWav *tw);
 
 #ifdef __cplusplus
 }

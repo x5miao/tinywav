@@ -15,29 +15,31 @@
  */
 
 #include "tinywav.h"
+#include <stdint.h>
 
 #define NUM_CHANNELS 1
 #define SAMPLE_RATE 48000
 #define BLOCK_SIZE 512
 #define NUM_ITERATIONS 3
 
-int main(int argc, char *argv[]) {
-  if (argc < 2) return -1;
+int main(int argc, char *argv[])
+{
+  if (argc < 2){
+	  return -1;
+  }
+  
   const char *outputPath = argv[1];
-
   TinyWav tw;
-  tinywav_new(&tw, NUM_CHANNELS, SAMPLE_RATE, TW_FLOAT32, TW_INLINE, outputPath);
-
-  for (int i = 0; i < NUM_ITERATIONS; i++) {
-    float buffer[BLOCK_SIZE];
-    for (int j = 0; j < BLOCK_SIZE; j++) {
-      buffer[j] = j / ((float) BLOCK_SIZE);
-    }
-
-    tinywav_write_f(&tw, buffer, BLOCK_SIZE);
+  tinywav_open_write(&tw, outputPath, NUM_CHANNELS, SAMPLE_RATE, 2);
+  int16_t buffer[BLOCK_SIZE];
+	  
+  for (int i = 0; i < NUM_ITERATIONS; ++i) {
+      for (int j = 0; j < BLOCK_SIZE; j++) {
+          buffer[j] = j;
+      }
+      tinywav_write_f(&tw, buffer, BLOCK_SIZE * sizeof(int16_t));
   }
 
-  tinywav_close(&tw);
-
-  return 0;
+   tinywav_close_write(&tw);
+   return 0;
 }
